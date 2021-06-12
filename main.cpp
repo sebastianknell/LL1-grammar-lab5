@@ -1,6 +1,8 @@
 #include <iostream>
+#include "Grammar.h"
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+    Grammar ll1;
+    ll1.printRules();
     return 0;
 }

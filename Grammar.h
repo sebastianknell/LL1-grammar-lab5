@@ -5,9 +5,11 @@
 #ifndef LAB5_GRAMMAR_H
 #define LAB5_GRAMMAR_H
 
+#include <iostream>
 #include <string>
 #include <vector>
 #include <map>
+#include <optional>
 
 using namespace std;
 
@@ -21,6 +23,12 @@ struct Token {
     token_type tokenType;
 };
 
+struct row_type {
+    Token lhs;
+    vector<Token> rhs;
+};
+using table_type = vector<row_type>;
+
 /* TEST GRAMMAR
  * exp -> exp opsuma term | term
  * opsuma -> + | -
@@ -30,7 +38,20 @@ struct Token {
 */
 
 class Grammar {
-    map<Token, vector<Token>> rules;
+    table_type rules;
+    table_type firstSets;
+    table_type nextSets;
+    void generateTestGrammar();
+public:
+    Grammar();
+    void getFirstSet();
+    void getNextSet();
+    bool validRules();
+    void buildTable();
+    void processString();
+    void printRules();
+    void printFirstSets();
+    void printNextSets();
 };
 
 
