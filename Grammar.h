@@ -10,6 +10,8 @@
 #include <vector>
 #include <map>
 #include <optional>
+#include <stdexcept>
+#include <set>
 
 using namespace std;
 
@@ -39,13 +41,14 @@ using table_type = vector<row_type>;
 
 class Grammar {
     table_type rules;
-    table_type firstSets;
-    table_type nextSets;
+    map<string, set<Token>> firstSets;
+    map<string, set<Token>> nextSets;
     void generateTestGrammar();
+    set<Token> getFirst(Token);
 public:
     Grammar();
-    void getFirstSet();
-    void getNextSet();
+    void getFirstSets();
+    void getNextSets();
     bool validRules();
     void buildTable();
     void processString();

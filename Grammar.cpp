@@ -11,39 +11,67 @@ static optional<row_type> find_token(table_type table, string text) {
     return nullopt;
 }
 
+static bool operator<(const Token& a, const Token& b) {
+    return a.text < b.text;
+}
+
 Grammar::Grammar() {
     generateTestGrammar();
 }
 
-void Grammar::getFirstSet() {
+set<Token> Grammar::getFirst(Token token) {
+    if (token.tokenType == TERM) {
+        return set<Token>{token};
+    }
+    else {
+        return firstSets[token.text];
+    }
+}
+
+void Grammar::getFirstSets() {
     // Initialize first sets
     for (const auto& rule : rules) {
-        firstSets.push_back({rule.lhs, vector<Token>()});
+        if (rule.lhs.tokenType != NTERM) throw runtime_error("LHS must be a non terminal");
+        firstSets[rule.lhs.text] = set<Token>();
     }
 
     bool hasChanged = true;
     while (hasChanged) {
+        hasChanged = false;
         for (auto rule : rules) {
-            auto lhs = rule.lhs;
-            auto rhs = rule.rhs;
-            vector<Token> temp;
-            if (rhs.front().tokenType == TERM) {
-                temp.push_back(rhs.front());
-                firstSets.push_back({lhs, temp});
-                hasChanged = true;
-            }
-            else {
-                auto first = find_token(firstSets, lhs.text);
-                if (first.has_value()) {
-
-                } else hasChanged = false;
-            }
+            auto *current = &firstSets[rule.lhs.text];
+            auto first = getFirst(rule.rhs.front());
+            auto prev_size = current->size();
+            current->merge(first);
+            if (prev_size < current->size()) hasChanged = true;
         }
     }
 }
 
-void Grammar::getNextSet() {
+void Grammar::getNextSets() {
+    if (firstSets.empty()) return;
 
+    for (const auto& rule : rules) {
+        if (rule.lhs.tokenType != NTERM) throw runtime_error("LHS must be a non terminal");
+        nextSets[rule.lhs.text] = set<Token>();
+    }
+
+    bool hasChanged = true;
+    while (hasChanged) {
+        hasChanged = false;
+        for (const auto &rule : rules) {
+            for (int i = 0; i< rule.rhs.size(); i++) {
+                if (rule.rhs[i].tokenType == NTERM) {
+                    int j = i;
+                    while (j < rule.rhs.size()) {
+                        nextSets[rule.rhs[i].text].merge(getFirst(rule.rhs[j]));
+                        j++;
+                    }
+                }
+            }
+
+        }
+    }
 }
 
 void Grammar::generateTestGrammar() {
@@ -69,11 +97,11 @@ void Grammar::generateTestGrammar() {
     temp.push_back({"term", NTERM});
     temp.push_back({"opmult", NTERM});
     temp.push_back({"factor", NTERM});
-    rules.push_back({{"opsuma", NTERM}, temp});
+    rules.push_back({{"term", NTERM}, temp});
 
     temp.clear();
     temp.push_back({"factor", NTERM});
-    rules.push_back({{"opsuma", NTERM}, temp});
+    rules.push_back({{"term", NTERM}, temp});
 
     temp.clear();
     temp.push_back({"*", TERM});
@@ -97,6 +125,8 @@ static void printTable(const table_type &table) {
 }
 
 void Grammar::printRules() {
+    cout << "       RULES       " << endl;
+    cout << "-------------------" << endl;
     for (const auto& row : rules) {
         cout << row.lhs.text << " -> ";
         for (const auto& token : row.rhs) {
@@ -104,12 +134,25 @@ void Grammar::printRules() {
         }
         cout << endl;
     }
+    cout << endl;
 }
 
 void Grammar::printFirstSets() {
-    printTable(firstSets);
+    for (const auto &set : firstSets) {
+        cout << set.first << " = ";
+        for (const auto &token : set.second) {
+            cout << token.text << " ";
+        }
+        cout << endl;
+    }
 }
 
 void Grammar::printNextSets() {
-    printTable(nextSets);
+    for (const auto &set : firstSets) {
+        cout << set.first << " = ";
+        for (const auto &token : set.second) {
+            cout << token.text << " ";
+        }
+        cout << endl;
+    }
 }
