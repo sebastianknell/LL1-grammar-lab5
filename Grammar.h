@@ -12,6 +12,7 @@
 #include <optional>
 #include <stdexcept>
 #include <set>
+#include <stack>
 
 using namespace std;
 
@@ -43,15 +44,18 @@ class Grammar {
     table_type rules;
     map<string, set<Token>> firstSets;
     map<string, set<Token>> nextSets;
+    map<string, map<string, row_type>> M; // Map from terminals to non-terminals
     void generateTestGrammar();
     set<Token> getFirst(Token);
+    const Token meta{"$", TERM};
+    const Token epsilon{"eps", TERM};
 public:
     Grammar();
     void getFirstSets();
     void getNextSets();
     bool validRules();
     void buildTable();
-    void processString();
+    bool processString(string);
     void printRules();
     void printFirstSets();
     void printNextSets();

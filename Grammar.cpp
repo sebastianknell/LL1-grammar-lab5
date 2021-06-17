@@ -15,6 +15,16 @@ static bool operator<(const Token& a, const Token& b) {
     return a.text < b.text;
 }
 
+static bool operator==(const Token& a, const Token& b) {
+    return a.text == b.text && a.tokenType == b.tokenType;
+}
+
+static void push_vector(stack<Token> &stack, vector<Token> vector) {
+    for (auto i = vector.size(); i >= 0; i--) {
+        stack.push(vector[i]);
+    }
+}
+
 Grammar::Grammar() {
     generateTestGrammar();
 }
@@ -55,6 +65,7 @@ void Grammar::getNextSets() {
         if (rule.lhs.tokenType != NTERM) throw runtime_error("LHS must be a non terminal");
         nextSets[rule.lhs.text] = set<Token>();
     }
+    nextSets[rules[0].lhs.text].insert(meta);
 
     bool hasChanged = true;
     while (hasChanged) {
@@ -72,6 +83,60 @@ void Grammar::getNextSets() {
 
         }
     }
+}
+
+void Grammar::buildTable() {
+    // Get all terminals
+    set<Token> terminals;
+    for (const auto& rule : rules) {
+        for (const auto& token : rule.rhs) {
+            if (token.tokenType == TERM) terminals.insert(token);
+        }
+    }
+    // Map each terminal with each non-terminal
+    for (const auto& rule : rules) {
+        M[rule.lhs.text] = map<string, row_type>();
+        for (const auto& term : terminals) {
+            M[rule.lhs.text][term.text] = {"0"};
+        }
+    }
+    // Fill according to first set of each non-terminal
+    for (const auto& set : firstSets) {
+        for (const auto& token : set.second) {
+            auto rule = find_if(rules.begin(), rules.end(), [set](const row_type& row) {return row.lhs.text == set.first;});
+            if (rule != rules.end())
+                M[set.first][token.text] = *rule;
+        }
+    }
+
+
+}
+
+bool Grammar::processString(string s) {
+    stack<Token> stack;
+    stack.push(meta);
+    stack.push(rules[0].lhs);
+    vector<Token> input;
+    for (auto c : s) input.push_back({to_string(c), TERM});
+    input.push_back(meta);
+
+    int i = 0;
+    while (i < input.size()) {
+        if (stack.top() == meta && input[0] == meta) return true;
+        // Match
+        if (stack.top().tokenType == TERM) {
+            if (stack.top() == input[i]) {
+                stack.pop();
+                i++;
+            }
+            else return false;
+        }
+        else {
+            auto rule = M[stack.top().text][input[i].text]; // TODO validate
+            push_vector(stack, rule.rhs);
+        }
+    }
+    return false;
 }
 
 void Grammar::generateTestGrammar() {
