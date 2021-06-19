@@ -4,19 +4,23 @@
 
 #include "Grammar.h"
 
-[[maybe_unused]] static optional<row_type> find_token(table_type table, string text) {
-    for (auto row : table) {
-        if (row.lhs.text == text) return row;
-    }
-    return nullopt;
-}
-
 static bool operator<(const Token& a, const Token& b) {
     return a.text < b.text;
 }
 
+static bool operator<(const row_type& a, const row_type& b) {
+    return a.lhs < b.lhs;
+}
+
 static bool operator==(const Token& a, const Token& b) {
     return a.text == b.text && a.tokenType == b.tokenType;
+}
+
+static void operator<<(ostream& stream, const row_type& row) {
+    stream << row.lhs.text << " -> ";
+    for (const auto& token : row.rhs) {
+        stream << token.text << " ";
+    }
 }
 
 static void push_vector(stack<Token> &stack, vector<Token> vector) {
@@ -49,19 +53,27 @@ void Grammar::getFirstSets() {
     bool hasChanged = true;
     while (hasChanged) {
         hasChanged = false;
-        for (auto rule : rules) {
+        for (int i = 0 ; i < rules.size(); i++) {
+            auto rule = rules[i];
             auto *current = &firstSets[rule.lhs.text];
+            auto prev_size = current->size();
             int k = 0;
-            bool hasEpsilon = true;
+            bool hasEpsilon = true; // TODO what if the while loop doesn't execute?
             while (hasEpsilon && k < rule.rhs.size()) {
                 auto first = getFirst(rule.rhs[k]);
                 hasEpsilon = first.erase(epsilon);
                 k++;
-                auto prev_size = current->size();
-                current->merge(first);
-                if (prev_size < current->size()) hasChanged = true;
+                for (auto token : first) {
+                    token.ruleFrom = i;
+                    current->insert(token);
+                }
             }
-            if (hasEpsilon) current->insert(epsilon);
+            if (hasEpsilon) {
+                auto eps = epsilon;
+                eps.ruleFrom = i;
+                current->insert(eps);
+            }
+            if (prev_size < current->size()) hasChanged = true;
         }
     }
 }
@@ -100,7 +112,6 @@ void Grammar::getNextSets() {
                     }
                 }
             }
-
         }
     }
 }
@@ -113,23 +124,35 @@ void Grammar::buildTable() {
             if (token.tokenType == TERM) terminals.insert(token);
         }
     }
+    terminals.erase(epsilon);
+    terminals.insert(meta);
+
     // Map each terminal with each non-terminal
     for (const auto& rule : rules) {
         M[rule.lhs.text] = map<string, row_type>();
         for (const auto& term : terminals) {
-            M[rule.lhs.text][term.text] = {"0"};
+            M[rule.lhs.text][term.text] = {error};
         }
     }
     // Fill according to first set of each non-terminal
     for (const auto& set : firstSets) {
+        bool hasEpsilon = false;
         for (const auto& token : set.second) {
-            auto rule = find_if(rules.begin(), rules.end(), [set](const row_type& row) {return row.lhs.text == set.first;});
-            if (rule != rules.end())
-                M[set.first][token.text] = *rule;
+            if (token.ruleFrom == -1) throw runtime_error("Error building table");
+            if (token == epsilon) hasEpsilon = true;
+            if (!hasEpsilon) {
+                M[set.first][token.text] = rules[token.ruleFrom];
+            }
+        }
+        if (hasEpsilon) {
+            auto nextSet = nextSets[set.first];
+            for (const auto& token : nextSet) {
+                vector<Token> temp;
+                temp.push_back(epsilon);
+                M[set.first][token.text] = {{set.first}, temp};
+            }
         }
     }
-
-
 }
 
 bool Grammar::processString(string s) {
@@ -137,7 +160,10 @@ bool Grammar::processString(string s) {
     stack.push(meta);
     stack.push(rules[0].lhs);
     vector<Token> input;
-    for (auto c : s) input.push_back({to_string(c), TERM});
+    stringstream ss(s);
+    string line;
+    while (getline(ss, line, ' '))
+        input.push_back({line, TERM});
     input.push_back(meta);
 
     int i = 0;
@@ -300,4 +326,23 @@ void Grammar::printNextSets() {
         cout << endl;
     }
     cout << endl;
+}
+
+void Grammar::printTable() {
+    cout << "       M Table       " << endl;
+    cout << "-------------------" << endl;
+    auto firstRow = M.begin();
+    cout << "M" << setw(4) << " | ";
+    for (const auto& col : firstRow->second) {
+        cout << col.first << setw(4) << " | ";
+    }
+    cout << endl;
+    for (const auto& row : M) {
+        cout << row.first << setw(4) << " | ";
+        for (const auto& col : row.second) {
+            cout << col.second;
+            cout << setw(4) << " | ";
+        }
+        cout << endl;
+    }
 }

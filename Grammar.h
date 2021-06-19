@@ -13,6 +13,8 @@
 #include <stdexcept>
 #include <set>
 #include <stack>
+#include <iomanip>
+#include <sstream>
 
 using namespace std;
 
@@ -24,6 +26,7 @@ enum token_type {
 struct Token {
     string text;
     token_type tokenType;
+    int ruleFrom = -1; // Rule index used for building M table. -1 if unused
 };
 
 struct row_type {
@@ -49,7 +52,8 @@ class Grammar {
     void generateTestGrammar2();
     set<Token> getFirst(const Token&);
     const Token meta{"$", TERM};
-    const Token epsilon{"eps", TERM};
+    const Token epsilon{"ε", TERM};
+    const Token error{"", TERM};
 public:
     Grammar();
     void getFirstSets();
@@ -60,6 +64,7 @@ public:
     void printRules();
     void printFirstSets();
     void printNextSets();
+    void printTable();
 };
 
 
