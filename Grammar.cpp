@@ -4,7 +4,7 @@
 
 #include "Grammar.h"
 
-static optional<row_type> find_token(table_type table, string text) {
+[[maybe_unused]] static optional<row_type> find_token(table_type table, string text) {
     for (auto row : table) {
         if (row.lhs.text == text) return row;
     }
@@ -26,10 +26,11 @@ static void push_vector(stack<Token> &stack, vector<Token> vector) {
 }
 
 Grammar::Grammar() {
-    generateTestGrammar();
+//    generateTestGrammar1();
+    generateTestGrammar2();
 }
 
-set<Token> Grammar::getFirst(Token token) {
+set<Token> Grammar::getFirst(const Token& token) {
     if (token.tokenType == TERM) {
         return set<Token>{token};
     }
@@ -50,10 +51,17 @@ void Grammar::getFirstSets() {
         hasChanged = false;
         for (auto rule : rules) {
             auto *current = &firstSets[rule.lhs.text];
-            auto first = getFirst(rule.rhs.front());
-            auto prev_size = current->size();
-            current->merge(first);
-            if (prev_size < current->size()) hasChanged = true;
+            int k = 0;
+            bool hasEpsilon = true;
+            while (hasEpsilon && k < rule.rhs.size()) {
+                auto first = getFirst(rule.rhs[k]);
+                hasEpsilon = first.erase(epsilon);
+                k++;
+                auto prev_size = current->size();
+                current->merge(first);
+                if (prev_size < current->size()) hasChanged = true;
+            }
+            if (hasEpsilon) current->insert(epsilon);
         }
     }
 }
@@ -139,7 +147,7 @@ bool Grammar::processString(string s) {
     return false;
 }
 
-void Grammar::generateTestGrammar() {
+void Grammar::generateTestGrammar1() {
     vector<Token> temp;
     temp.push_back({"exp", NTERM});
     temp.push_back({"opsuma", NTERM});
@@ -179,6 +187,60 @@ void Grammar::generateTestGrammar() {
     rules.push_back({{"factor", NTERM}, temp});
 }
 
+void Grammar::generateTestGrammar2() {
+    vector<Token> temp;
+    temp.push_back({"term", NTERM});
+    temp.push_back({"exp'", NTERM});
+    rules.push_back({{"exp", NTERM}, temp});
+
+    temp.clear();
+    temp.push_back({"opsuma", NTERM});
+    temp.push_back({"term", NTERM});
+    temp.push_back({"exp'", NTERM});
+    rules.push_back({{"exp'", NTERM}, temp});
+
+    temp.clear();
+    temp.push_back(epsilon);
+    rules.push_back({{"exp'", NTERM}, temp});
+
+    temp.clear();
+    temp.push_back({"+", TERM});
+    rules.push_back({{"opsuma", NTERM}, temp});
+
+    temp.clear();
+    temp.push_back({"-", TERM});
+    rules.push_back({{"opsuma", NTERM}, temp});
+
+    temp.clear();
+    temp.push_back({"factor", NTERM});
+    temp.push_back({"term'", NTERM});
+    rules.push_back({{"term", NTERM}, temp});
+
+    temp.clear();
+    temp.push_back({"opmult", NTERM});
+    temp.push_back({"factor", NTERM});
+    temp.push_back({"term'", NTERM});
+    rules.push_back({{"term'", NTERM}, temp});
+
+    temp.clear();
+    temp.push_back(epsilon);
+    rules.push_back({{"term'", NTERM}, temp});
+
+    temp.clear();
+    temp.push_back({"*", TERM});
+    rules.push_back({{"opmult", NTERM}, temp});
+
+    temp.clear();
+    temp.push_back({"(", TERM});
+    temp.push_back({"exp", NTERM});
+    temp.push_back({")", TERM});
+    rules.push_back({{"factor", NTERM}, temp});
+
+    temp.clear();
+    temp.push_back({"numero", TERM});
+    rules.push_back({{"factor", NTERM}, temp});
+}
+
 static void printTable(const table_type &table) {
     for (const auto& row : table) {
         cout << row.lhs.text << " = ";
@@ -203,6 +265,8 @@ void Grammar::printRules() {
 }
 
 void Grammar::printFirstSets() {
+    cout << "       First Sets       " << endl;
+    cout << "-------------------" << endl;
     for (const auto &set : firstSets) {
         cout << set.first << " = ";
         for (const auto &token : set.second) {
@@ -210,9 +274,12 @@ void Grammar::printFirstSets() {
         }
         cout << endl;
     }
+    cout << endl;
 }
 
 void Grammar::printNextSets() {
+    cout << "       Next Sets       " << endl;
+    cout << "-------------------" << endl;
     for (const auto &set : firstSets) {
         cout << set.first << " = ";
         for (const auto &token : set.second) {
@@ -220,4 +287,5 @@ void Grammar::printNextSets() {
         }
         cout << endl;
     }
+    cout << endl;
 }

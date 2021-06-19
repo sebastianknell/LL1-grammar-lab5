@@ -45,8 +45,9 @@ class Grammar {
     map<string, set<Token>> firstSets;
     map<string, set<Token>> nextSets;
     map<string, map<string, row_type>> M; // Map from terminals to non-terminals
-    void generateTestGrammar();
-    set<Token> getFirst(Token);
+    void generateTestGrammar1();
+    void generateTestGrammar2();
+    set<Token> getFirst(const Token&);
     const Token meta{"$", TERM};
     const Token epsilon{"eps", TERM};
 public:
