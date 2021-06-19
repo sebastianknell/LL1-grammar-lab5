@@ -81,10 +81,22 @@ void Grammar::getNextSets() {
         for (const auto &rule : rules) {
             for (int i = 0; i< rule.rhs.size(); i++) {
                 if (rule.rhs[i].tokenType == NTERM) {
-                    int j = i;
-                    while (j < rule.rhs.size()) {
-                        nextSets[rule.rhs[i].text].merge(getFirst(rule.rhs[j]));
+                    auto *current = &nextSets[rule.rhs[i].text];
+                    int j = i+1;
+                    bool hasEpsilon = true;
+                    while (hasEpsilon && j < rule.rhs.size()) {
+                        auto first = getFirst(rule.rhs[j]);
+                        hasEpsilon = first.erase(epsilon);
+                        auto prev_size = current->size();
+                        nextSets[rule.rhs[i].text].merge(first);
+                        if (prev_size < current->size()) hasChanged = true;
                         j++;
+                    }
+                    if (hasEpsilon) {
+                        auto temp = nextSets[rule.lhs.text];
+                        auto prev_size = current->size();
+                        current->merge(temp);
+                        if (prev_size < current->size()) hasChanged = true;
                     }
                 }
             }
@@ -280,7 +292,7 @@ void Grammar::printFirstSets() {
 void Grammar::printNextSets() {
     cout << "       Next Sets       " << endl;
     cout << "-------------------" << endl;
-    for (const auto &set : firstSets) {
+    for (const auto &set : nextSets) {
         cout << set.first << " = ";
         for (const auto &token : set.second) {
             cout << token.text << " ";
