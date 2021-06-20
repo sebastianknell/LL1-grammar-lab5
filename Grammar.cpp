@@ -24,14 +24,13 @@ static void operator<<(ostream& stream, const row_type& row) {
 }
 
 static void push_vector(stack<Token> &stack, vector<Token> vector) {
-    for (auto i = vector.size(); i >= 0; i--) {
+    for (int i = vector.size() - 1; i >= 0; i--) {
         stack.push(vector[i]);
     }
 }
 
 Grammar::Grammar() {
-//    generateTestGrammar1();
-    generateTestGrammar2();
+    generateTestGrammar();
 }
 
 set<Token> Grammar::getFirst(const Token& token) {
@@ -155,6 +154,19 @@ void Grammar::buildTable() {
     }
 }
 
+static void printStack(stack<Token> s) {
+    stack<Token> copy;
+    while (!s.empty()) {
+        copy.push(s.top());
+        s.pop();
+    }
+    while (!copy.empty()) {
+        cout << copy.top().text << " ";
+        copy.pop();
+    }
+    cout << endl;
+}
+
 bool Grammar::processString(string s) {
     stack<Token> stack;
     stack.push(meta);
@@ -165,67 +177,34 @@ bool Grammar::processString(string s) {
     while (getline(ss, line, ' '))
         input.push_back({line, TERM});
     input.push_back(meta);
-
+    if (input.empty()) return false;
     int i = 0;
+    cout << "            Stack" << endl;
+    cout << "-----------------------------" << endl;
     while (i < input.size()) {
-        if (stack.top() == meta && input[0] == meta) return true;
+        printStack(stack);
+        if (stack.top() == meta && input[i] == meta) return true;
         // Match
         if (stack.top().tokenType == TERM) {
             if (stack.top() == input[i]) {
                 stack.pop();
                 i++;
             }
+            else if (stack.top() == epsilon) stack.pop();
             else return false;
         }
         else {
             auto rule = M[stack.top().text][input[i].text]; // TODO validate
+            if (rule.lhs == error) return false;
+            stack.pop();
             push_vector(stack, rule.rhs);
         }
     }
+    cout << endl;
     return false;
 }
 
-void Grammar::generateTestGrammar1() {
-    vector<Token> temp;
-    temp.push_back({"exp", NTERM});
-    temp.push_back({"opsuma", NTERM});
-    temp.push_back({"term", NTERM});
-    rules.push_back({{"exp", NTERM}, temp});
-
-    temp.clear();
-    temp.push_back({"term", NTERM});
-    rules.push_back({{"exp", NTERM}, temp});
-
-    temp.clear();
-    temp.push_back({"+", TERM});
-    rules.push_back({{"opsuma", NTERM}, temp});
-
-    temp.clear();
-    temp.push_back({"-", TERM});
-    rules.push_back({{"opsuma", NTERM}, temp});
-
-    temp.clear();
-    temp.push_back({"term", NTERM});
-    temp.push_back({"opmult", NTERM});
-    temp.push_back({"factor", NTERM});
-    rules.push_back({{"term", NTERM}, temp});
-
-    temp.clear();
-    temp.push_back({"factor", NTERM});
-    rules.push_back({{"term", NTERM}, temp});
-
-    temp.clear();
-    temp.push_back({"*", TERM});
-    rules.push_back({{"opmult", NTERM}, temp});
-
-    temp.clear();
-    temp.push_back({"(", TERM});
-    temp.push_back({"exp", NTERM});
-    temp.push_back({")", TERM});
-    rules.push_back({{"factor", NTERM}, temp});
-}
-
-void Grammar::generateTestGrammar2() {
+void Grammar::generateTestGrammar() {
     vector<Token> temp;
     temp.push_back({"term", NTERM});
     temp.push_back({"exp'", NTERM});
@@ -279,19 +258,9 @@ void Grammar::generateTestGrammar2() {
     rules.push_back({{"factor", NTERM}, temp});
 }
 
-static void printTable(const table_type &table) {
-    for (const auto& row : table) {
-        cout << row.lhs.text << " = ";
-        for (const auto& token : row.rhs) {
-            cout << token.text << " ";
-        }
-        cout << endl;
-    }
-}
-
 void Grammar::printRules() {
-    cout << "       RULES       " << endl;
-    cout << "-------------------" << endl;
+    cout << "           RULES       " << endl;
+    cout << "---------------------------" << endl;
     for (const auto& row : rules) {
         cout << row.lhs.text << " -> ";
         for (const auto& token : row.rhs) {
@@ -329,8 +298,8 @@ void Grammar::printNextSets() {
 }
 
 void Grammar::printTable() {
-    cout << "       M Table       " << endl;
-    cout << "-------------------" << endl;
+    cout << "           M Table       " << endl;
+    cout << "---------------------------" << endl;
     auto firstRow = M.begin();
     cout << "M" << setw(4) << " | ";
     for (const auto& col : firstRow->second) {
@@ -345,4 +314,5 @@ void Grammar::printTable() {
         }
         cout << endl;
     }
+    cout << endl;
 }
