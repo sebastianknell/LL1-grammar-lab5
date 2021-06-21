@@ -52,18 +52,19 @@ class Grammar {
     set<Token> getFirst(const Token&);
     const Token meta{"$", TERM};
     const Token epsilon{"ε", TERM};
-    const Token error{"", TERM};
+    const Token error{"error", TERM};
 public:
     Grammar();
     void getFirstSets();
     void getNextSets();
     bool validRules();
     void buildTable();
-    bool processString(string);
+    bool processString(const string&, bool);
     void printRules();
     void printFirstSets();
     void printNextSets();
     void printTable();
+    friend void operator<<(ostream& stream, const row_type& row);
 };
 
 

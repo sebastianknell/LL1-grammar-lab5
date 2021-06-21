@@ -16,8 +16,10 @@ static bool operator==(const Token& a, const Token& b) {
     return a.text == b.text && a.tokenType == b.tokenType;
 }
 
-static void operator<<(ostream& stream, const row_type& row) {
-    stream << row.lhs.text << " -> ";
+void operator<<(ostream& stream, const row_type& row) {
+    stream << row.lhs.text;
+    if (row.lhs.text == "error") return;
+    stream << " -> ";
     for (const auto& token : row.rhs) {
         stream << token.text << " ";
     }
@@ -167,7 +169,7 @@ static void printStack(stack<Token> s) {
     cout << endl;
 }
 
-bool Grammar::processString(string s) {
+bool Grammar::processString(const string& s, bool showStack=false) {
     stack<Token> stack;
     stack.push(meta);
     stack.push(rules[0].lhs);
@@ -179,10 +181,12 @@ bool Grammar::processString(string s) {
     input.push_back(meta);
     if (input.empty()) return false;
     int i = 0;
-    cout << "            Stack" << endl;
-    cout << "-----------------------------" << endl;
+    if (showStack) {
+        cout << "            Stack" << endl;
+        cout << "-----------------------------" << endl;
+    }
     while (i < input.size()) {
-        printStack(stack);
+        if (showStack) printStack(stack);
         if (stack.top() == meta && input[i] == meta) return true;
         // Match
         if (stack.top().tokenType == TERM) {

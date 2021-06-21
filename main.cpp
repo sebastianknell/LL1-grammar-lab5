@@ -11,8 +11,13 @@ int main() {
     ll1.buildTable();
     ll1.printTable();
 
-    string input = "numero * ( numero + numero )";
-    bool success = ll1.processString(input);
+    string validInput = "numero * ( numero + numero )";
+    bool success = ll1.processString(validInput, true);
+    if (success) cout << "Valid string" << endl;
+    else cout << "Invalid string" << endl;
+
+    string invalidInput = "numero ** (( numero + numero )";
+    success = ll1.processString(invalidInput, false);
     if (success) cout << "Valid string" << endl;
     else cout << "Invalid string" << endl;
     return 0;
