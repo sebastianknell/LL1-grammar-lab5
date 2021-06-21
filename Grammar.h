@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <optional>
 #include <stdexcept>
 #include <set>
 #include <stack>
@@ -33,7 +32,6 @@ struct row_type {
     Token lhs;
     vector<Token> rhs;
 };
-using table_type = vector<row_type>;
 
 /* TEST GRAMMAR
  * exp -> exp opsuma term | term
@@ -44,7 +42,7 @@ using table_type = vector<row_type>;
 */
 
 class Grammar {
-    table_type rules;
+    vector<row_type> rules;
     map<string, set<Token>> firstSets;
     map<string, set<Token>> nextSets;
     map<string, map<string, row_type>> M; // Map from terminals to non-terminals
